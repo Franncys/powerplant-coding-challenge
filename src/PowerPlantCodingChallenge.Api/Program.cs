@@ -18,6 +18,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<IProductionPlanService, ProductionPlanService>();
 builder.Services.AddScoped<IProductionPlanner, MeritOrderProductionPlanner>();
+builder.Services.AddScoped<IProductionCostCalculator, ProductionCostCalculator>();
 
 
 var app = builder.Build();
