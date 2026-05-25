@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using PowerPlantCodingChallenge.Api.Models.Requests;
+using PowerPlantCodingChallenge.Api.Models.Responses;
 
 namespace PowerPlantCodingChallenge.Api.Controller
 {
@@ -8,9 +10,18 @@ namespace PowerPlantCodingChallenge.Api.Controller
 	public class ProductionPlanController : ControllerBase
 	{
 		[HttpPost]
-		public IActionResult CalculateProductionPlan()
+		[ProducesResponseType(typeof(IReadOnlyCollection<ProductionPlanResponse>), StatusCodes.Status200OK)]
+		public IActionResult CalculateProductionPlan(ProductionPlanRequest request)
 		{
-			return Ok("");
+			var response = request.PowerPlants
+			.Select(powerPlant => new ProductionPlanResponse
+			{
+				Name = powerPlant.Name,
+				Production = 0m
+			})
+			.ToList();
+
+			return Ok(response);
 		}
 	}
 }
