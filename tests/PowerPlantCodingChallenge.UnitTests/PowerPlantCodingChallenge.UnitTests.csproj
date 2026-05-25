@@ -20,7 +20,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\PowerPlantCodingChallenge.Application\PowerPlantCodingChallenge.Application.csproj" />
-    <ProjectReference Include="..\..\src\PowerPlantCodingChallenge.Domain\PowerPlantCodingChallenge.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

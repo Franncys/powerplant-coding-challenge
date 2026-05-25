@@ -1,99 +1,326 @@
-# powerplant-coding-challenge
+# PowerPlant Coding Challenge
 
+## Overview
 
-## Welcome !
+This project is an ASP.NET Core Web API implementation of the PowerPlant Coding Challenge.
 
-Below you can find the description of a coding challenge that we ask people to perform when applying for a job in our team.
+The API exposes one endpoint:
 
-The goal of this coding challenge is to provide the applicant some insight into the business we're in and as such provide the applicant an indication about the challenges she/he will be confronted with. Next, during the first interview we will use the applicant's implementation as a seed to discuss all kinds of interesting software engineering topics.  
+    POST /productionplan
 
-Time is scarce, we know. Therefore we ask you not to spend more than 4 hours on this challenge. We know it is not possible to deliver a finished implementation of the challenge in only four hours. Even though your submission will not be complete, it will provide us plenty of information and topics to discuss later on during the talks.
+It receives a payload containing:
 
-This coding-challenge is part of a formal process and is used in collaboration with the recruiting companies we work with.  Submitting a pull-request will not automatically trigger the recruitement process.
-## Who are we 
+- the requested load
+- fuel prices
+- wind percentage
+- available power plants
 
-We are the IS team of the 'Short-term Power as-a-Service' (a.k.a. SPaaS) team within [GEM](https://gems.engie.com/).
+It returns the amount of power each plant should produce in order to match the requested load while respecting the production constraints.
 
-[GEM](https://gems.engie.com/), which stands for 'Global Energy Management', is the energy management arm of [ENGIE](https://www.engie.com/), one of the largest global energy players, 
-with access to local markets all over the world.  
+## Technologies
 
-SPaaS is a team consisting of around 100 people with experience in energy markets, IT and modeling. In smaller teams consisting of a mix of people with different experiences, we are active on the [day-ahead](https://en.wikipedia.org/wiki/European_Power_Exchange#Day-ahead_markets) market, [intraday markets](https://en.wikipedia.org/wiki/European_Power_Exchange#Intraday_markets) and [collaborate with the TSO to balance the grid continuously](https://en.wikipedia.org/wiki/Transmission_system_operator#Electricity_market_operations).
+- C#
+- .NET 10
+- ASP.NET Core Web API
+- xUnit
+- Docker
 
-## The challenge
+## How to run locally
 
-### In short
-Calculate how much power each of a multitude of different [powerplants](https://en.wikipedia.org/wiki/Power_station) need to produce (a.k.a. the production-plan) when the [load](https://en.wikipedia.org/wiki/Load_profile) is given and taking into account the cost of the underlying energy sources (gas,  kerosine) and the Pmin and Pmax of each powerplant.
+From the repository root:
 
-### More in detail
+    dotnet restore
+    dotnet build
+    dotnet test
+    dotnet run --project src/PowerPlantCodingChallenge.Api
 
-The load is the continuous demand of power. The total load at each moment in time is forecasted. For instance for Belgium you can see the load forecasted by the grid operator [here](https://www.elia.be/en/grid-data/load-and-load-forecasts).
+The API runs on:
 
-At any moment in time, all available powerplants need to generate the power to exactly match the load.  The cost of generating power can be different for every powerplant and is dependent on external factors: The cost of producing power using a [turbojet](https://en.wikipedia.org/wiki/Gas_turbine#Industrial_gas_turbines_for_power_generation), that runs on kerosine, is higher compared to the cost of generating power using a gas-fired powerplant because of gas being cheaper compared to kerosine and because of the [thermal efficiency](https://en.wikipedia.org/wiki/Thermal_efficiency) of a gas-fired powerplant being around 50% (2 units of gas will generate 1 unit of electricity) while that of a turbojet is only around 30%.  The cost of generating power using windmills however is zero. Thus deciding which powerplants to activate is dependent on the [merit-order](https://en.wikipedia.org/wiki/Merit_order).
+    http://localhost:8888
 
-When deciding which powerplants in the merit-order to activate (a.k.a. [unit-commitment problem](https://en.wikipedia.org/wiki/Unit_commitment_problem_in_electrical_power_production)) the maximum amount of power each powerplant can produce (Pmax) obviously needs to be taken into account.  Additionally gas-fired powerplants generate a certain minimum amount of power when switched on, called the Pmin. 
+Swagger UI is available at:
 
+    http://localhost:8888/swagger
 
-### Performing the challenge
+## Running with Docker
 
-Build a REST API exposing an endpoint `/productionplan` that accepts a POST of which the body contains a payload as you can find in the `example_payloads` directory and that returns a json with the same structure as in `example_response.json` and that manages and logs run-time errors.
+Build the Docker image:
 
-For calculating the unit-commitment, we prefer you not to rely on an existing (linear-programming) solver but instead write an algorithm yourself.
+    docker build -t powerplant-coding-challenge .
 
-Implementations can be submitted in either C# (on .Net 5 or higher) or Python (3.8 or higher) as these are (currently) the main languages we use in SPaaS. Along with the implementation should be a README that describes how to compile (if applicable) and launch the application.
+Run the container:
 
-- C# implementations should contain a project file to compile the application. 
-- Python implementations should contain a `requirements.txt` or a `pyproject.toml` (for use with poetry) to install all needed dependencies.
+    docker run --rm -p 8888:8888 powerplant-coding-challenge
 
-#### Payload
+The API will be available at:
 
-The payload contains 3 types of data:
- - load: The load is the amount of energy (MWh) that need to be generated during one hour.
- - fuels: based on the cost of the fuels of each powerplant, the merit-order can be determined which is the starting point for deciding which powerplants should be switched on and how much power they will deliver.  Wind-turbine are either switched-on, and in that case generate a certain amount of energy depending on the % of wind, or can be switched off. 
-   - gas(euro/MWh): the price of gas per MWh. Thus if gas is at 6 euro/MWh and if the efficiency of the powerplant is 50% (i.e. 2 units of gas will generate one unit of electricity), the cost of generating 1 MWh is 12 euro.
-   - kerosine(euro/Mwh): the price of kerosine per MWh.
-   - co2(euro/ton): the price of emission allowances (optionally to be taken into account).
-   - wind(%): percentage of wind. Example: if there is on average 25% wind during an hour, a wind-turbine with a Pmax of 4 MW will generate 1MWh of energy.
- - powerplants: describes the powerplants at disposal to generate the demanded load. For each powerplant is specified:
-   - name:
-   - type: gasfired, turbojet or windturbine.
-   - efficiency: the efficiency at which they convert a MWh of fuel into a MWh of electrical energy. Wind-turbines do not consume 'fuel' and thus are considered to generate power at zero price.
-   - pmax: the maximum amount of power the powerplant can generate.
-   - pmin: the minimum amount of power the powerplant generates when switched on. 
+    http://localhost:8888
 
-#### response
+Swagger UI will be available at:
 
-The response should be a json as in `example_payloads/response3.json`, which is the expected answer for `example_payloads/payload3.json`, specifying for each powerplant how much power each powerplant should deliver. The power produced by each powerplant has to be a multiple of 0.1 Mw and the sum of the power produced by all the powerplants together should equal the load.
+    http://localhost:8888/swagger
 
-### Want more challenge?
+## API
 
-Having fun with this challenge and want to make it more realistic. Optionally, do one of the extra's below:
+### POST /productionplan
 
-#### Docker
+Example request:
 
-Provide a Dockerfile along with the implementation to allow deploying your solution quickly.
+    {
+      "load": 910,
+      "fuels": {
+        "gas(euro/MWh)": 13.4,
+        "kerosine(euro/MWh)": 50.8,
+        "co2(euro/ton)": 20,
+        "wind(%)": 60
+      },
+      "powerplants": [
+        {
+          "name": "gasfiredbig1",
+          "type": "gasfired",
+          "efficiency": 0.53,
+          "pmin": 100,
+          "pmax": 460
+        },
+        {
+          "name": "gasfiredbig2",
+          "type": "gasfired",
+          "efficiency": 0.53,
+          "pmin": 100,
+          "pmax": 460
+        },
+        {
+          "name": "gasfiredsomewhatsmaller",
+          "type": "gasfired",
+          "efficiency": 0.37,
+          "pmin": 40,
+          "pmax": 210
+        },
+        {
+          "name": "tj1",
+          "type": "turbojet",
+          "efficiency": 0.3,
+          "pmin": 0,
+          "pmax": 16
+        },
+        {
+          "name": "windpark1",
+          "type": "windturbine",
+          "efficiency": 1,
+          "pmin": 0,
+          "pmax": 150
+        },
+        {
+          "name": "windpark2",
+          "type": "windturbine",
+          "efficiency": 1,
+          "pmin": 0,
+          "pmax": 36
+        }
+      ]
+    }
 
-#### CO2
+Example response:
 
-Taken into account that a gas-fired powerplant also emits CO2, the cost of running the powerplant should also take into account the cost of the [emission allowances](https://en.wikipedia.org/wiki/Carbon_emission_trading).  For this challenge, you may take into account that each MWh generated creates 0.3 ton of CO2. 
+    [
+      {
+        "name": "windpark1",
+        "p": 90.0
+      },
+      {
+        "name": "windpark2",
+        "p": 21.6
+      },
+      {
+        "name": "gasfiredbig1",
+        "p": 460.0
+      },
+      {
+        "name": "gasfiredbig2",
+        "p": 338.4
+      },
+      {
+        "name": "gasfiredsomewhatsmaller",
+        "p": 0.0
+      },
+      {
+        "name": "tj1",
+        "p": 0.0
+      }
+    ]
 
-## Acceptance criteria
+## Algorithm
 
-For a submission to be reviewed as part of an application for a position in the team, the project needs to:
-  - contain a README.md explaining how to build and launch the API
-  - expose the API on port `8888`
+The production plan is calculated using a merit-order dispatch strategy.
 
-Failing to comply with any of these criteria will automatically disqualify the submission.
+The main idea is to produce energy using the cheapest available power plants first.
 
-## More info
+The cost per MWh is calculated as follows:
 
-For more info on energy management, check out:
+### Wind turbine
 
- - [Global Energy Management Solutions](https://www.youtube.com/watch?v=SAop0RSGdHM)
- - [COO hydroelectric power station](https://www.youtube.com/watch?v=edamsBppnlg)
- - [Management of supply](https://www.youtube.com/watch?v=eh6IIQeeX3c) - video made during winter 2018-2019
+    cost = 0
 
-## FAQ
+Wind turbines have no fuel cost. Their maximum available production is adjusted according to the wind percentage:
 
-##### Can an existing solver be used to calculate the unit-commitment
-Implementations should not rely on an external solver and thus contain an algorithm written from scratch (clarified in the text as of version v1.1.0)
+    available pmax = pmax * wind percentage / 100
 
+### Gas-fired power plant
+
+    cost = gas price / efficiency + co2 price * 0.3
+
+The CO2 cost is included as a bonus feature. The challenge states that gas-fired power plants emit 0.3 tons of CO2 per MWh.
+
+### Turbojet
+
+    cost = kerosine price / efficiency
+
+After calculating costs, power plants are sorted by merit order. The planner then dispatches production while respecting:
+
+- `pmin`
+- `pmax`
+- wind availability
+- requested load
+- production precision of `0.1 MW`
+
+The planner also handles cases where the remaining load is smaller than the next plant's `pmin`.
+
+For example, if the requested load is `480 MW` and the first gas plant can produce `460 MW`, the remaining load is `20 MW`. If the next gas plant has a `pmin` of `100 MW`, it cannot simply produce `20 MW`. In that case, the planner redistributes production:
+
+    gasfiredbig1 = 380
+    gasfiredbig2 = 100
+    total = 480
+
+This keeps the result valid while avoiding the use of more expensive plants when a cheaper valid combination exists.
+
+## Architecture
+
+The solution is organized into separate projects:
+
+    src/
+      PowerPlantCodingChallenge.Api
+      PowerPlantCodingChallenge.Application
+      PowerPlantCodingChallenge.Domain
+
+    tests/
+      PowerPlantCodingChallenge.UnitTests
+      PowerPlantCodingChallenge.FunctionalTests
+
+### API layer
+
+The API layer contains:
+
+- controllers
+- request DTOs
+- response DTOs
+- dependency injection configuration
+
+The controller is intentionally thin. It receives the HTTP request, maps it to application input, calls the application service, and returns the response.
+
+### Application layer
+
+The application layer contains the business use case and planning logic.
+
+Main components:
+
+- `IProductionPlanService`
+- `ProductionPlanService`
+- `IProductionPlanner`
+- `MeritOrderProductionPlanner`
+- `IProductionCostCalculator`
+- `ProductionCostCalculator`
+
+The planner is separated from the cost calculator to keep responsibilities clear.
+
+### Domain layer
+
+The domain project is kept available for domain concepts and future extension. For this challenge, most of the logic is contained in the application layer because the problem is mainly a calculation use case and does not require persistence.
+
+## SOLID principles
+
+The implementation applies SOLID principles pragmatically.
+
+### Single Responsibility Principle
+
+Each class has a focused responsibility.
+
+- The controller handles HTTP concerns.
+- The application service coordinates the use case.
+- The planner handles production dispatch.
+- The cost calculator handles cost calculation.
+
+### Open/Closed Principle
+
+The planner is hidden behind the `IProductionPlanner` interface. A different planning strategy could be added later without changing the API layer.
+
+### Interface Segregation Principle
+
+Interfaces are small and focused. For example, `IProductionCostCalculator` only exposes cost calculation behavior.
+
+### Dependency Inversion Principle
+
+The service depends on abstractions such as `IProductionPlanner`, not on concrete implementations. Dependencies are injected through ASP.NET Core dependency injection.
+
+## Design patterns
+
+### Strategy Pattern
+
+`IProductionPlanner` represents a planning strategy.
+
+The current implementation uses `MeritOrderProductionPlanner`, but another algorithm could be introduced later without changing the controller.
+
+### Dependency Injection
+
+ASP.NET Core dependency injection is used to wire services and planners.
+
+This improves testability and keeps the application loosely coupled.
+
+### DTO pattern
+
+The API request and response models are separated from application models. This keeps the external API contract independent from the internal implementation.
+
+## Testing
+
+The solution contains both unit tests and functional tests.
+
+Run all tests with:
+
+    dotnet test
+
+### Unit tests
+
+Unit tests cover:
+
+- production cost calculation
+- wind availability
+- merit-order dispatch
+- payload1
+- payload2
+- payload3
+- `pmin` redistribution behavior
+- production values rounded to `0.1 MW`
+- total production equal to requested load
+
+### Functional tests
+
+Functional tests cover the full HTTP pipeline using `WebApplicationFactory`.
+
+They validate:
+
+- `POST /productionplan` returns `200 OK` for valid payloads
+- the API returns the expected production plan for the official example
+- invalid input returns `400 Bad Request`
+
+## Assumptions and limitations
+
+This solution does not use an external linear programming solver, as requested by the challenge.
+
+The implemented algorithm is a deterministic merit-order dispatch with additional handling for common `pmin` redistribution cases.
+
+It is not intended to replace a full industrial unit commitment optimizer. The goal is to provide a clear, maintainable and testable solution adapted to the scope of the coding challenge.
+
+## Bonus features implemented
+
+- Docker support
+- CO2 cost included for gas-fired power plants
+- Swagger UI for quick manual testing
