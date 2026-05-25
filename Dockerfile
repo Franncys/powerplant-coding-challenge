@@ -4,7 +4,7 @@ WORKDIR /src
 
 # Copy the full repository and restore dependencies.
 COPY . .
-RUN dotnet restore PowerPlantCodingChallenge.sln
+RUN dotnet restore PowerPlantCodingChallenge.slnx
 
 # Publish the API project in Release mode.
 RUN dotnet publish src/PowerPlantCodingChallenge.Api/PowerPlantCodingChallenge.Api.csproj \
