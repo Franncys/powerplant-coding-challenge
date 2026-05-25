@@ -200,7 +200,6 @@ The solution is organized into separate projects:
     src/
       PowerPlantCodingChallenge.Api
       PowerPlantCodingChallenge.Application
-      PowerPlantCodingChallenge.Domain
 
     tests/
       PowerPlantCodingChallenge.UnitTests
