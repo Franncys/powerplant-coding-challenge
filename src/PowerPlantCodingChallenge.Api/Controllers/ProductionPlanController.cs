@@ -12,6 +12,5 @@ namespace PowerPlantCodingChallenge.Api.Controller
 		{
 			return Ok("");
 		}
-
 	}
 }
