@@ -2,7 +2,7 @@
 
 namespace PowerPlantCodingChallenge.Api.Models.Requests
 {
-	public sealed class ProductionPlanRequest
+	public sealed record ProductionPlanRequest
 	{
 		[JsonPropertyName("load")]
 		public decimal Load { get; init; }

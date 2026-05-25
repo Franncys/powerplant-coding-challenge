@@ -2,7 +2,7 @@
 
 namespace PowerPlantCodingChallenge.Api.Models.Responses
 {
-	public sealed class ProductionPlanResponse
+	public sealed record ProductionPlanResponse
 	{
 		[JsonPropertyName("name")]
 		public string Name { get; init; } = string.Empty;

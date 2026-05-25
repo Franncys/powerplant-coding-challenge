@@ -1,7 +1,7 @@
 ﻿using System.Text.Json.Serialization;
 namespace PowerPlantCodingChallenge.Api.Models.Requests
 {
-	public sealed class FuelsRequest
+	public sealed record FuelsRequest
 	{
 		[JsonPropertyName("gas(euro/MWh)")]
 		public decimal GasEuroPerMwh { get; init; }

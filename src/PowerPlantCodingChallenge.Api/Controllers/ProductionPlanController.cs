@@ -7,7 +7,7 @@ using PowerPlantCodingChallenge.Application.Models;
 
 namespace PowerPlantCodingChallenge.Api.Controller
 {
-	[Route("api/[controller]")]
+	[Route("productionplan")]
 	[ApiController]
 	public class ProductionPlanController : ControllerBase
 	{
@@ -22,19 +22,36 @@ namespace PowerPlantCodingChallenge.Api.Controller
 		[ProducesResponseType(typeof(IReadOnlyCollection<ProductionPlanResponse>), StatusCodes.Status200OK)]
 		public IActionResult CalculateProductionPlan(ProductionPlanRequest request)
 		{
-			var input = MapToApplicationInput(request);
+			try
+			{
+				var input = MapToApplicationInput(request);
 
-			var result = _productionPlanService.CalculateProductionPlan(input);
+				var result = _productionPlanService.CalculateProductionPlan(input);
 
-			var response = result
-				.Select(item => new ProductionPlanResponse
+				var response = result
+					.Select(item => new ProductionPlanResponse
+					{
+						Name = item.Name,
+						Production = item.Production
+					})
+					.ToList();
+
+				return Ok(response);
+			}
+			catch (ArgumentException exception)
+			{
+				return BadRequest(new
 				{
-					Name = item.Name,
-					Production = item.Production
-				})
-				.ToList();
-
-			return Ok(response);
+					error = exception.Message
+				});
+			}
+			catch (InvalidOperationException exception)
+			{
+				return BadRequest(new
+				{
+					error = exception.Message
+				});
+			}
 		}
 
 		private static ProductionPlanInput MapToApplicationInput(ProductionPlanRequest request)

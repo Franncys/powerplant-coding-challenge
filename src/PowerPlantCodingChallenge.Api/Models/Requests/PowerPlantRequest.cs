@@ -2,7 +2,7 @@
 
 namespace PowerPlantCodingChallenge.Api.Models.Requests
 {
-	public sealed class PowerPlantRequest
+	public sealed record PowerPlantRequest
 	{
 		[JsonPropertyName("name")]
 		public string Name { get; init; } = string.Empty;
