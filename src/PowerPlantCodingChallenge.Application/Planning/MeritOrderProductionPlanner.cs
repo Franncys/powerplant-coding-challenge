@@ -103,9 +103,29 @@ public sealed class MeritOrderProductionPlanner : IProductionPlanner
 
 			var production = CalculateProductionForCandidate(candidate, remainingLoad);
 
-			// A plant cannot be switched on below its minimum production level.
-			if (production <= 0 || production < candidate.Pmin)
+			if (production <= 0)
 			{
+				continue;
+			}
+
+			// If the remaining load is smaller than the plant's Pmin, we should not
+			// immediately skip to a more expensive plant. Instead, we first try to
+			// activate this cheaper plant at Pmin and reduce an already producing plant.
+			//
+			// Example:
+			// load = 480
+			// gasfiredbig1 = 460
+			// remaining = 20
+			// gasfiredbig2 cannot produce 20 because pmin = 100
+			// solution: gasfiredbig1 = 380, gasfiredbig2 = 100
+			if (production < candidate.Pmin)
+			{
+				if (TryActivatePlantWithRedistribution(candidate, candidates, productionByPlantName, remainingLoad))
+				{
+					remainingLoad = 0;
+					break;
+				}
+
 				continue;
 			}
 
@@ -113,12 +133,59 @@ public sealed class MeritOrderProductionPlanner : IProductionPlanner
 			remainingLoad = RoundToStep(remainingLoad - production);
 		}
 
-		// If a small amount remains due to rounding or capacity constraints,
-		// try to add it to one already producing plant.
 		if (remainingLoad != 0)
 		{
 			AdjustLastProducingPlant(candidates, productionByPlantName, remainingLoad);
 		}
+	}
+
+	/// <summary>
+	/// Activates a plant at its Pmin when the remaining load is too small for that plant,
+	/// then reduces an already producing plant to keep the total production equal to the load.
+	/// </summary>
+	private static bool TryActivatePlantWithRedistribution(
+		DispatchCandidate candidateToActivate,
+		IReadOnlyCollection<DispatchCandidate> candidates,
+		Dictionary<string, decimal> productionByPlantName,
+		decimal remainingLoad)
+	{
+		if (candidateToActivate.Pmin <= 0 ||
+			candidateToActivate.Pmin > candidateToActivate.AvailablePmax)
+		{
+			return false;
+		}
+
+		var productionToAssign = candidateToActivate.Pmin;
+		var productionToRemove = RoundToStep(productionToAssign - remainingLoad);
+
+		if (productionToRemove <= 0)
+		{
+			return false;
+		}
+
+		var plantToReduce = candidates
+			.Where(candidate => productionByPlantName[candidate.Name] > 0)
+			.Reverse()
+			.FirstOrDefault(candidate =>
+			{
+				var adjustedProduction = RoundToStep(
+					productionByPlantName[candidate.Name] - productionToRemove);
+
+				return adjustedProduction == 0 ||
+					   adjustedProduction >= candidate.Pmin;
+			});
+
+		if (plantToReduce is null)
+		{
+			return false;
+		}
+
+		productionByPlantName[candidateToActivate.Name] = productionToAssign;
+
+		productionByPlantName[plantToReduce.Name] = RoundToStep(
+			productionByPlantName[plantToReduce.Name] - productionToRemove);
+
+		return true;
 	}
 
 	/// <summary>
@@ -148,15 +215,48 @@ public sealed class MeritOrderProductionPlanner : IProductionPlanner
 	}
 
 	/// <summary>
-	/// Adjusts an already producing plant to close the remaining production gap.
-	/// The adjustment must stay within the plant's Pmin and Pmax constraints.
+	/// Adjusts the current dispatch when the greedy allocation leaves a remaining load
+	/// that cannot be directly assigned to the next plant.
+	/// 
+	/// Example:
+	/// requested load = 480
+	/// gasfiredbig1 = 460
+	/// remaining = 20
+	/// gasfiredbig2 cannot produce only 20 because its Pmin is 100.
+	/// 
+	/// The solution is to reduce gasfiredbig1 by 80 and start gasfiredbig2 at 100:
+	/// gasfiredbig1 = 380
+	/// gasfiredbig2 = 100
 	/// </summary>
 	private static void AdjustLastProducingPlant(
 		IReadOnlyCollection<DispatchCandidate> candidates,
 		Dictionary<string, decimal> productionByPlantName,
 		decimal remainingLoad)
 	{
-		// Reverse merit order is used so the cheapest plants remain as fully used as possible.
+		if (TryIncreaseAlreadyProducingPlant(candidates, productionByPlantName, remainingLoad))
+		{
+			return;
+		}
+
+		if (TryActivateAdditionalPlant(candidates, productionByPlantName, remainingLoad))
+		{
+			return;
+		}
+
+		throw new InvalidOperationException(
+			"Unable to match the requested load with the available power plants.");
+	}
+
+	/// <summary>
+	/// First adjustment attempt:
+	/// try to add the remaining load to a plant that is already producing,
+	/// without exceeding its available Pmax.
+	/// </summary>
+	private static bool TryIncreaseAlreadyProducingPlant(
+		IReadOnlyCollection<DispatchCandidate> candidates,
+		Dictionary<string, decimal> productionByPlantName,
+		decimal remainingLoad)
+	{
 		var adjustablePlant = candidates
 			.Where(candidate => productionByPlantName[candidate.Name] > 0)
 			.Reverse()
@@ -171,12 +271,69 @@ public sealed class MeritOrderProductionPlanner : IProductionPlanner
 
 		if (adjustablePlant is null)
 		{
-			throw new InvalidOperationException(
-				"Unable to match the requested load with the available power plants.");
+			return false;
 		}
 
 		productionByPlantName[adjustablePlant.Name] = RoundToStep(
 			productionByPlantName[adjustablePlant.Name] + remainingLoad);
+
+		return true;
+	}
+
+	/// <summary>
+	/// Second adjustment attempt:
+	/// activate an additional plant at its Pmin and reduce another already producing plant
+	/// to keep the total production equal to the requested load.
+	/// 
+	/// This handles cases where the remaining load is smaller than the next plant's Pmin.
+	/// </summary>
+	private static bool TryActivateAdditionalPlant(
+		IReadOnlyCollection<DispatchCandidate> candidates,
+		Dictionary<string, decimal> productionByPlantName,
+		decimal remainingLoad)
+	{
+		var inactiveCandidates = candidates
+			.Where(candidate => productionByPlantName[candidate.Name] == 0)
+			.Where(candidate => candidate.Pmin > 0)
+			.Where(candidate => candidate.Pmin <= candidate.AvailablePmax)
+			.ToList();
+
+		foreach (var candidateToActivate in inactiveCandidates)
+		{
+			var productionToAssign = candidateToActivate.Pmin;
+			var productionToRemove = RoundToStep(productionToAssign - remainingLoad);
+
+			if (productionToRemove <= 0)
+			{
+				continue;
+			}
+
+			var plantToReduce = candidates
+				.Where(candidate => productionByPlantName[candidate.Name] > 0)
+				.Reverse()
+				.FirstOrDefault(candidate =>
+				{
+					var adjustedProduction = RoundToStep(
+						productionByPlantName[candidate.Name] - productionToRemove);
+
+					return adjustedProduction == 0 ||
+						   adjustedProduction >= candidate.Pmin;
+				});
+
+			if (plantToReduce is null)
+			{
+				continue;
+			}
+
+			productionByPlantName[candidateToActivate.Name] = productionToAssign;
+
+			productionByPlantName[plantToReduce.Name] = RoundToStep(
+				productionByPlantName[plantToReduce.Name] - productionToRemove);
+
+			return true;
+		}
+
+		return false;
 	}
 
 	/// <summary>

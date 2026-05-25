@@ -40,5 +40,4 @@ app.MapControllers();
 
 app.Run();
 
-
-// http://localhost:8888/swagger
+public partial class Program { }
