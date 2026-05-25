@@ -1,3 +1,7 @@
+using PowerPlantCodingChallenge.Application.Interfaces;
+using PowerPlantCodingChallenge.Application.Planning;
+using PowerPlantCodingChallenge.Application.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 //builder.WebHost.UseUrls("http://localhost:8888");
@@ -10,6 +14,10 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+
+builder.Services.AddScoped<IProductionPlanService, ProductionPlanService>();
+builder.Services.AddScoped<IProductionPlanner, MeritOrderProductionPlanner>();
 
 
 var app = builder.Build();
