@@ -231,10 +231,6 @@ Main components:
 
 The planner is separated from the cost calculator to keep responsibilities clear.
 
-### Domain layer
-
-The domain project is kept available for domain concepts and future extension. For this challenge, most of the logic is contained in the application layer because the problem is mainly a calculation use case and does not require persistence.
-
 ## SOLID principles
 
 The implementation applies SOLID principles pragmatically.
