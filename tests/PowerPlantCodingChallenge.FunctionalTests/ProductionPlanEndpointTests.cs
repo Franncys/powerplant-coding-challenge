@@ -100,18 +100,18 @@ public sealed class ProductionPlanEndpointTests : IClassFixture<WebApplicationFa
 		Assert.Equal(request.Load, result.Sum(item => item.Production));
 	}
 
-	//[Fact]
-	//public async Task PostProductionPlan_WhenRequestHasNegativeLoad_ShouldReturnBadRequest()
-	//{
-	//	var request = CreatePayload3Request() with
-	//	{
-	//		Load = -1m
-	//	};
+	[Fact]
+	public async Task PostProductionPlan_WhenRequestHasNegativeLoad_ShouldReturnBadRequest()
+	{
+		var request = CreatePayload3Request() with
+		{
+			Load = -1m
+		};
 
-	//	var response = await _client.PostAsJsonAsync("/productionplan", request);
+		var response = await _client.PostAsJsonAsync("/productionplan", request);
 
-	//	Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-	//}
+		Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+	}
 
 	private static ProductionPlanRequest CreatePayload1Request()
 	{
