@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PowerPlantCodingChallenge.Api/PowerPlantCodingChallenge.Api.csproj" />
+    <Project Path="src/PowerPlantCodingChallenge.Application/PowerPlantCodingChallenge.Application.csproj" />
+    <Project Path="src/PowerPlantCodingChallenge.Domain/PowerPlantCodingChallenge.Domain.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PowerPlantCodingChallenge.FunctionalTests/PowerPlantCodingChallenge.FunctionalTests.csproj" />
+    <Project Path="tests/PowerPlantCodingChallenge.UnitTests/PowerPlantCodingChallenge.UnitTests.csproj" />
+  </Folder>
+</Solution>
